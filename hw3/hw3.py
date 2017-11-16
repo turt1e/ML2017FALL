@@ -11,20 +11,8 @@ from keras.layers.normalization import BatchNormalization
 import tensorflow as tf
 def build_model():
 
-    '''
-    #先定義好框架
-    #第一步從input吃起
-    '''
     input_img = Input(shape=(48, 48, 1))
-    '''
-    先來看一下keras document 的Conv2D
-    keras.layers.Conv2D(filters, kernel_size, strides=(1, 1), 
-        padding='valid', data_format=None, dilation_rate=(1, 1),
-        activation=None, use_bias=True, kernel_initializer='glorot_uniform',
-        bias_initializer='zeros', kernel_regularizer=None,
-        bias_regularizer=None, activity_regularizer=None,
-        kernel_constraint=None, bias_constraint=None)
-    '''
+ 
     block1 = Conv2D(64, (5, 5), padding='valid', activation='relu')(input_img)
     block1 = ZeroPadding2D(padding=(2, 2), data_format='channels_last')(block1)
     block1 = MaxPooling2D(pool_size=(5, 5), strides=(2, 2))(block1)
@@ -146,7 +134,7 @@ def main():
     args = parser.parse_args()
     
 # ====  load_data  ====  
-#    datatonpy('train.csv',0)
+    datatonpy('train.csv',0)
 #=======================
 
 #    To begin with, you should first read your csv training file and 
@@ -246,15 +234,14 @@ def train(batch_size, num_epoch, pretrain, save_every, train_pixels, train_label
     
     epochss=3
 
-    datagen = ImageDataGenerator(
-    featurewise_center=True,
-    featurewise_std_normalization=True,
-    rotation_range=0,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    horizontal_flip=True)
-    datagen.fit(train_pixels)
-    
+	datagen = ImageDataGenerator(featurewise_center=False,
+                             featurewise_std_normalization=False,
+                             width_shift_range=0.1,
+                             height_shift_range=0.1,
+                             zoom_range=0.2,
+                             shear_range=0.1,
+                             rotation_range=10.)
+
     
  #   np.save('valid_p',val_pixels/255.0)
  #   np.save('valid_l',val_labels/255.0)
@@ -263,8 +250,8 @@ def train(batch_size, num_epoch, pretrain, save_every, train_pixels, train_label
 
 
 # fits the model on batches with real-time data augmentation:
-    model.fit_generator(datagen.flow(train_pixels, train_labels, batch_size=32),
-                    steps_per_epoch=len(train_pixels), epochs=25,validation_data=(val_pixels/255,val_labels))
+    model.fit_generator(datagen.flow(train_pixels, train_labels, batch_size=32,shuffle=true),
+                    steps_per_epoch=1000, epochs=25,validation_data=(val_pixels/255,val_labels))
    # parallel_model = multi_gpu_model(model, gpus=8)
    # for i in range(epochss):
     
@@ -275,9 +262,9 @@ def train(batch_size, num_epoch, pretrain, save_every, train_pixels, train_label
     model.save('modelok')
     result=model.evaluate(val_pixels/255,val_labels)
     print('result=',result)
- #   (no,test)=datatonpy('test.csv',1)
-  #  test=np.reshape(test,(-1,48,48,1))
-  #  np.save('testnp',test)
+    (no,test)=datatonpy('test.csv',1)
+    test=np.reshape(test,(-1,48,48,1))
+    np.save('testnp',test)
     test=np.load('testnp.npy')
     y=model.predict(test/255.0)
     yl=np.zeros((len(y),2),dtype=int)
