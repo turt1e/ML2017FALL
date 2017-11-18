@@ -210,9 +210,9 @@ def train(batch_size, num_epoch, pretrain, save_every, train_pixels, train_label
         model.add(MaxPooling2D(pool_size=(3, 3)))
         model.add(Dropout(0.2))
 
-        model.add(Conv2D(64, (3, 3), padding='same',
+        model.add(Conv2D(128, (3, 3), padding='same',
                          activation='relu'))
-        model.add(Conv2D(64, (3, 3), activation='relu'))
+        model.add(Conv2D(128, (3, 3), activation='relu'))
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Dropout(0.2))
 
@@ -225,11 +225,11 @@ def train(batch_size, num_epoch, pretrain, save_every, train_pixels, train_label
         model.add(Flatten())
  #       model.add(Dense(30, activation='relu'))
         model.add(Dense(512, activation='relu'))
-        model.add(Dropout(0.7))    
+        model.add(Dropout(0.3))    
 
         model.add(Dense(7, activation='softmax'))
         #opt = SGD(lr=0.001, decay=1e-6, momentum=0.9, nesterov=False)
-        opt = Adam(lr=5e-4)
+        opt = Adam(lr=1e-3)
         #opt = Adadelta(lr=0.1, rho=0.95, epsilon=1e-08)        
         model.compile(loss='categorical_crossentropy',optimizer=opt,metrics=['accuracy'])
         history=model.fit(train_pixels,train_labels,batch_size=64,epochs=20,validation_data=(val_pixels/255,val_labels))

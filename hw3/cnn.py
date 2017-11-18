@@ -143,39 +143,13 @@ def main():
 #   Such as:
 
 #    In addition, we maintain it in array structure and save it in pickle
-    
-    
-    # training data
-    train_pixels = load_pickle('train_pixels.npy')
-    train_labels = load_pickle('train_labels.npy')
-    (train_pixels,train_labels,valid_pixels,valid_labels )=split_valid_set(train_pixels, train_labels, 0.1)
-    print ('# of training instances: ' + str(len(train_labels)))
-    print(train_labels[1])
-    # validation data
-   # valid_pixels = load_pickle('valid_pixels.npy')
-   # valid_labels = load_pickle('valid_labels.npy')
-    print ('# of validation instances: ' + str(len(valid_labels)))
-    
-    '''
-    Modify the answer format so as to correspond with the output of keras model
-    We can also do this to training data here, 
-        but we choose to do it in "train" function
-    '''
-    
-    valid_pixels = np.reshape(valid_pixels,(-1,48, 48, 1))
-    onehot = np.zeros((valid_labels.shape[0],7), dtype=np.float)
-    for i in range(len(valid_labels)):
-        
-        onehot[i][int(valid_labels[i])] = 1.
-
-    valid_labels=onehot    
-
+ 
     # start training
     train(batch, epoch, pretrain, save_every,
-          train_pixels, train_labels,
-          np.asarray(valid_pixels), np.asarray(valid_labels),
+          
+          
           model_name)
-def train(batch_size, num_epoch, pretrain, save_every, train_pixels, train_labels, val_pixels, val_labels, model_name=None):
+def train(batch_size, num_epoch, pretrain, save_every, model_name=None):
 
     sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
     '''
@@ -184,17 +158,8 @@ def train(batch_size, num_epoch, pretrain, save_every, train_pixels, train_label
     Thus, given 320 instances, batch size 32, you need 10 iterations in 1 epoch.
     '''
  
-    train_pixels=np.reshape(train_pixels,(-1,48,48,1))
-    train_pixels=train_pixels/255
-    
-  #  print(train_pixels)
-    onehot = np.zeros((train_labels.shape[0],7), dtype=np.float)
-    for i in range(len(train_labels)):
-        
-        onehot[i][int(train_labels[i])] = 1.
 
-    train_labels=onehot 
-    
+  
     if pretrain == False:
         np.save('valid_l',val_labels)
         np.save('valid_p',val_pixels/255.0)
@@ -210,9 +175,9 @@ def train(batch_size, num_epoch, pretrain, save_every, train_pixels, train_label
         model.add(MaxPooling2D(pool_size=(3, 3)))
         model.add(Dropout(0.2))
 
-        model.add(Conv2D(64, (3, 3), padding='same',
+        model.add(Conv2D(128, (3, 3), padding='same',
                          activation='relu'))
-        model.add(Conv2D(64, (3, 3), activation='relu'))
+        model.add(Conv2D(128, (3, 3), activation='relu'))
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Dropout(0.2))
 
@@ -240,14 +205,7 @@ def train(batch_size, num_epoch, pretrain, save_every, train_pixels, train_label
     
     epochss=3
 
-    datagen = ImageDataGenerator(featurewise_center=False,
-                             featurewise_std_normalization=False,
-                             shear_range=0.2,
-                             
-                             zoom_range=0.2
-                             )
-    datagen.fit(train_pixels)
-    
+
 
     # compute quantities required for featurewise normalization
 # (std, mean, and principal components if ZCA whitening is applied)
@@ -264,7 +222,7 @@ def train(batch_size, num_epoch, pretrain, save_every, train_pixels, train_label
         
     model.save('modelok')
    
-    (no,test)=datatonpy(sys.argc[1],1)
+    (no,test)=datatonpy(sys.argv[1],1)
     test=np.reshape(test,(-1,48,48,1))
     np.save('testnp',test)
     test=np.load('testnp.npy')
@@ -283,7 +241,7 @@ def train(batch_size, num_epoch, pretrain, save_every, train_pixels, train_label
         
   #  out=open('predict.csv','w')
    # out.write('id,value\n')
-    np.savetxt(sys.argc[2],yl,fmt='%d',delimiter=',',header='id,label',comments='')
+    np.savetxt(sys.argv[2],yl,fmt='%d',delimiter=',',header='id,label',comments='')
         
     
     
