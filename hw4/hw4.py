@@ -1,4 +1,8 @@
 #==============
+from __future__ import print_function
+
+import json
+import os
 import numpy as np
 import pickle
 with open('training_label.txt','r',encoding='utf-8') as f:
@@ -39,9 +43,22 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import one_hot
 from keras.models import Sequential
 from keras.layers import Dense
-from keras.layers import Flatten
+from keras.layers import Flatten, merge
 from keras.layers.embeddings import Embedding
 from keras.utils import to_categorical
+from gensim.models import Word2Vec
+from gensim.utils import simple_preprocess
+from keras.engine import Input
+
+from keras.layers import Dense, Input, Flatten
+from keras.layers import Conv1D, MaxPooling1D, Embedding ,LSTM,TimeDistributed
+from keras.models import Model
+
+#===============================================
+ 
+#===============================================
+
+#=======bulid model==========
 
 tokenizer = Tokenizer(num_words=MAX_NB_WORDS)
 tokenizer.fit_on_texts(str_x)
@@ -73,44 +90,43 @@ embedding_layer = Embedding(len(word_index) + 1,
 
 
 
-from keras.layers import Dense, Input, Flatten
-from keras.layers import Conv1D, MaxPooling1D, Embedding ,LSTM,TimeDistributed
-from keras.models import Model
 BATCH_SIZE=32
 TIME_STEPS=3
 INPUT_SIZE=1
-model=Sequential()
-'''
-model.add(TimeDistributed(Embedding(len(word_index) + 1,
-                            EMBEDDING_DIM,
-                            input_length=MAX_SEQUENCE_LENGTH),batch_input_shape=(32,3,5)))
-'''
-model.add(Embedding(len(word_index) + 1, 128))
-model.add(LSTM(128, dropout=0.2, recurrent_dropout=0.2))
-'''
-model.add(LSTM(
-    64,       # Or: input_dim=INPUT_SIZE, input_length=TIME_STEPS,
-    
-    return_sequences=True,      # True: output at all steps. False: output as last step.
-    #stateful=True,              # True: the final state of batch1 is feed into the initial state of batch2
-))
-'''
-#x = MaxPooling1D(35)(x)  # global max pooling
+train=0
+if train==1:
+    model=Sequential()
+    '''
+    model.add(TimeDistributed(Embedding(len(word_index) + 1,
+                                EMBEDDING_DIM,
+                                input_length=MAX_SEQUENCE_LENGTH),batch_input_shape=(32,3,5)))
+    '''
+    model.add(Embedding(len(word_index) + 1, 128))
+    model.add(LSTM(128, dropout=0.2, recurrent_dropout=0.2))
+    '''
+    model.add(LSTM(
+        64,       # Or: input_dim=INPUT_SIZE, input_length=TIME_STEPS,
+        
+        return_sequences=True,      # True: output at all steps. False: output as last step.
+        #stateful=True,              # True: the final state of batch1 is feed into the initial state of batch2
+    ))
+    '''
+    #x = MaxPooling1D(35)(x)  # global max pooling
 
-model.add(Dense(128, activation='relu'))
-model.add(Dense(2, activation='softmax'))
+    model.add(Dense(128, activation='relu'))
+    model.add(Dense(2, activation='softmax'))
 
 
-model.compile(loss='categorical_crossentropy',
-              optimizer='rmsprop',
-              metrics=['acc'])
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='rmsprop',
+                  metrics=['acc'])
+                  
+                  
+    model.fit(x_train, y_train, validation_data=(x_val, y_val),
+              epochs=3, batch_size=64)
               
               
-model.fit(x_train, y_train, validation_data=(x_val, y_val),
-          epochs=3, batch_size=64)
-          
-          
-model.save('model')
+    model.save('model')
 
 model=load_model('model')
 with open('testing_data.txt','r',encoding='utf-8') as t:
@@ -128,4 +144,3 @@ print('shape of pre:',pre_l.shape)
 pre_id=np.array(range(0,len(pre_l))).reshape(-1,1)
 pre_l=np.concatenate((pre_id,pre_l),axis=1)
 np.savetxt('predict.csv',pre_l,fmt='%d',delimiter=',',header='id,label',comments='')
-
