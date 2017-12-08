@@ -1,3 +1,3 @@
 #!/bin/bash 
-wget -O model https://www.dropbox.com/s/4v26lzazpqrixy4/modelok?dl=1
+wget -O model https://www.dropbox.com/s/fohud389fabecwg/model?dl=0
 python hw4test.py $1 
