@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from keras.layers import Dense, Input, Flatten
 from keras.layers import Conv1D, MaxPooling1D, Embedding ,LSTM,TimeDistributed
 from keras.models import Model
-
+from keras.callbacks import ModelCheckpoint
 def data2vec(trainlist,mode):    
     seqlen=0
     list_x=[]
@@ -71,4 +71,4 @@ pre_l=out.argmax(axis=1).reshape(-1,1)
 print('shape of pre:',pre_l.shape)
 pre_id=np.array(range(0,len(pre_l))).reshape(-1,1)
 pre_l=np.concatenate((pre_id,pre_l),axis=1)
-np.savetxt('predict.csv',pre_l,fmt='%d',delimiter=',',header='id,label',comments='')
+np.savetxt(sys.argv[2],pre_l,fmt='%d',delimiter=',',header='id,label',comments='')
