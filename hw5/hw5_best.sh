@@ -1,2 +1,2 @@
 #!/bin/bash 
-python hw5.py $1 $2 $3 $4 
+python hw5sh.py $1 $2 $3 $4
