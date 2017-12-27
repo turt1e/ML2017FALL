@@ -2,12 +2,23 @@ from gensim.models import word2vec
 import pandas as pd 
 import numpy as np
 import csv
-
+from gensim.models import Word2Vec
 import sys
 import os
 import argparse
 import _pickle as pk
 import jieba
+import random
+from keras.callbacks import ModelCheckpoint
+from keras.models import Sequential
+from keras.utils import np_utils
+from keras.layers import Dense, Dropout, Activation, LSTM, Flatten,Input,Dot,Concatenate,Conv1D
+from keras.optimizers import SGD, Adam
+from keras.models import load_model,Model
+from keras.layers.embeddings import Embedding
+from keras.preprocessing.text import one_hot, Tokenizer, text_to_word_sequence
+from keras.preprocessing.sequence import pad_sequences
+
 
 
 jieba.set_dictionary('dict.txt.big')
@@ -104,27 +115,21 @@ def computeSimilarity(vec1,vec2):
     return simi
 
 data_train1 = chineseCut('1_train.txt')
+
 data_train2 = chineseCut('2_train.txt')
 data_train3 = chineseCut('3_train.txt')
+
 data_train4 = chineseCut('4_train.txt')
+'''
 data_train5 = chineseCut('5_train.txt')
+'''
 
 
-
-data_all = data_train1+data_train2+data_train3+data_train4+data_train5
+data_all = data_train1+data_train2+data_train3+data_train4#+data_train5
 
 l=len(data_all)
 #===========data preprocessing
 
-
-from keras.models import Sequential
-from keras.utils import np_utils
-from keras.layers import Dense, Dropout, Activation, LSTM, Flatten
-from keras.optimizers import SGD, Adam
-from keras.models import load_model
-from keras.layers.embeddings import Embedding
-from keras.preprocessing.text import one_hot, Tokenizer, text_to_word_sequence
-from keras.preprocessing.sequence import pad_sequences
 
 
 tokenizer = Tokenizer()
@@ -134,36 +139,87 @@ seq_train = tokenizer.texts_to_sequences(data_all )
 print('seq_size=',len(seq_train))
 
 training_data= pad_sequences(seq_train, maxlen=10,truncating='pre')  
-print(training_data[0])
+print(type(training_data[0]))
+
 
 
 
 frontback=[]
 uncor=[]
 idx=0
-coef=np.array([])
+coef=[]
 for i in range(l-20):
-    tem=np.array([])
-    tem=np.concatenate(training_data[i],training_data[i+1])
-    frontback.append(tem)
-    coef=np.append(1)
-    tem1=np.concatenate(training_data[i],training_data[i+10])
-    frontback.append(tem1)
-    coef=np.append(0)
-    
+    a=random.randint(1,l-1)
+    for j in range(5):
+        uncor.append(training_data[i+j+1])
+        frontback.append(training_data[i])
+        if j==0:
+            coef.append([5])
+        if j==1:
+            coef.append([2])            
+        if j==2:
+            coef.append([2])            
+        if j==3:
+            coef.append([2])            
+        if j==4:
+            coef.append([0])            
 
-frontback
+	
+frontback=np.array(frontback)
+uncor=np.array(uncor)
+coef=np.array(coef,dtype='int')
+
+print(type(frontback[:]))
+print(frontback[0])
+print(coef[0])
+
+
+
+#=====word2vec
+'''
+modelwv=Word2Vec(data_all,size=100)
+modelwv.save('w21vmodel')
+'''
+modelwv=Word2Vec.load('w21vmodel')
+weights = modelwv.wv.syn0
+print('weights.shape[0]=',weights.shape[0])
+
+vocab_list = [(k, modelwv.wv[k]) for k, v in modelwv.wv.vocab.items()]
+print('vocab=',len(vocab_list))
+embeddings_index = {}
+for i in range(len(vocab_list)):
+    word = vocab_list[i][0]
+    coefs = vocab_list[i][1]
+    embeddings_index[word]=coefs
+
+embeddings_matrix = np.zeros((len(word_index) + 1, 100))
+for word, i in word_index.items():
+  #  print('word=',word,'i=',i)
+    embedding_vector = embeddings_index.get(word)
+    if embedding_vector is not None:
+        # words not found in embedding index will be all-zeros.
+        embeddings_matrix[i] = embedding_vector
+  #  input('enter')  
+
+
+
+
+
+
+
 
 go=1
 if go==1:
     embedding_layer1 = Embedding(len(word_index)+1,
-                            30,
+                            embeddings_matrix.shape[1],
                             input_length=10,
-                            trainable=True,name='user_em')
+                            weights=[embeddings_matrix],
+                            trainable=False,name='user_em')
     embedding_layer2 = Embedding(len(word_index)+1,
-                            30,
+                            embeddings_matrix.shape[1],
                             input_length=10,
-                            trainable=True,name='movie_em')    
+                            weights=[embeddings_matrix],
+                            trainable=False,name='movie_em')    
 
 
     u=Input(shape=(10,),name='user')
@@ -172,18 +228,19 @@ if go==1:
     r=embedding_layer1(u)
     p=embedding_layer2 (m)
 
-    
-    r1=LSTM(30,)(r)
-    p1=LSTM(30,)(p)
-    
-    dot=Dot(axes=1,name='dot')([r1,p1])
-    model=Model(inputs=[u,m],outputs=[dot])
-    model.compile(loss='categorical_crossentropy',
-              optimizer='rmsprop',
+    r=Conv1D(20,kernel_size=3)(r)
+    p=Conv1D(20,kernel_size=3)(p)
+    r1=LSTM(10,)(r)
+    p1=LSTM(10,)(p)
+    o=Concatenate()([r1,p1])
+    out=Dense(1)(o)
+    model=Model(inputs=[u,m],outputs=[out])
+    model.compile(loss='mse',
+              optimizer='adam',
               metrics=['acc'])
-                  
-    model.fit([frontback[:l*0.7][0],frontback[:l*0.7][1]], coef[:l*0.7], validation_data=([frontback[l*0.7:][0],frontback[l*0.7:][1]], coef[l*0.7:]),
-              epochs=8, batch_size=256,)
+    val=int(l*0.9)              
+    history=model.fit([frontback[:val],uncor[:val]], coef[:val], validation_data=([frontback[val:],uncor[val:]], coef[val:]),
+              epochs=30, batch_size=2000,callbacks=[ModelCheckpoint('model',monitor='acc',save_best_only=True)])
               
 
 
@@ -202,8 +259,6 @@ question_test ,option1_test, option2_test, option3_test, option4_test, option5_t
 
 # for i in sent:
 #     print(models.wv[i])
-
-models = word2vec.Word2Vec.load('modwtov_fi250.model')
 
 qu_vec = construtVector(question_test,models)
 op1_vec = construtVector(option1_test,models)
